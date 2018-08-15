@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
+	uuid "github.com/gofrs/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	uuid "github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

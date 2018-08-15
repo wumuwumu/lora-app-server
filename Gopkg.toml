@@ -3,7 +3,7 @@
 
 
 [[constraint]]
-  branch = "master"
+  branch = "multicast"
   name = "github.com/brocaar/loraserver"
 
 [[constraint]]
@@ -120,3 +120,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/NickBall/go-aes-key-wrap"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "1.2.2"
