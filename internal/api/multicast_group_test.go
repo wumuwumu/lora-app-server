@@ -355,6 +355,79 @@ func (ts *APITestSuite) TestMulticastGroup() {
 			assert.Equal(updateReq.MulticastGroup, getResp.MulticastGroup)
 		})
 
+		t.Run("Enqueue", func(t *testing.T) {
+			assert := require.New(t)
+			mgID, err := uuid.FromString(createResp.Id)
+			assert.NoError(err)
+
+			nsClient.GetMulticastGroupResponse = ns.GetMulticastGroupResponse{
+				MulticastGroup: &ns.MulticastGroup{
+					McAddr: []byte{1, 2, 3, 4},
+					FCnt:   15,
+				},
+			}
+
+			resp, err := api.Enqueue(context.Background(), &pb.EnqueueMulticastQueueItemRequest{
+				MulticastQueueItem: &pb.MulticastQueueItem{
+					MulticastGroupId: createResp.Id,
+					FPort:            10,
+					Data:             []byte{1, 2, 3, 4, 5},
+				},
+			})
+			assert.NoError(err)
+			assert.EqualValues(15, resp.FCnt)
+
+			nsEnqueueReq := <-nsClient.EnqueueMulticastQueueItemChan
+			assert.Equal(&ns.MulticastQueueItem{
+				MulticastGroupId: mgID.Bytes(),
+				FCnt:             15,
+				FPort:            10,
+				FrmPayload:       []byte{0x3f, 0xb1, 0xca, 0xb2, 0xc7},
+			}, nsEnqueueReq.MulticastQueueItem)
+
+			t.Run("ListQueue", func(t *testing.T) {
+				assert := require.New(t)
+
+				nsClient.GetMulticastQueueItemsForMulticastGroupResponse = ns.GetMulticastQueueItemsForMulticastGroupResponse{
+					MulticastQueueItems: []*ns.MulticastQueueItem{
+						nsEnqueueReq.MulticastQueueItem,
+					},
+				}
+
+				listResp, err := api.ListQueue(context.Background(), &pb.ListMulticastGroupQueueItemsRequest{
+					MulticastGroupId: mgID.String(),
+				})
+				assert.NoError(err)
+				assert.Len(listResp.MulticastQueueItems, 1)
+				assert.Equal(&pb.MulticastQueueItem{
+					MulticastGroupId: createResp.Id,
+					FCnt:             15,
+					FPort:            10,
+					Data:             []byte{1, 2, 3, 4, 5},
+				}, listResp.MulticastQueueItems[0])
+
+				nsReq := <-nsClient.GetMulticastQueueItemsForMulticastGroupChan
+				assert.Equal(ns.GetMulticastQueueItemsForMulticastGroupRequest{
+					MulticastGroupId: mgID.Bytes(),
+				}, nsReq)
+			})
+
+			t.Run("FlushQueue", func(t *testing.T) {
+				assert := require.New(t)
+
+				_, err := api.FlushQueue(context.Background(), &pb.FlushMulticastGroupQueueItemsRequest{
+					MulticastGroupId: mgID.String(),
+				})
+				assert.NoError(err)
+
+				nsReq := <-nsClient.FlushMulticastQueueForMulticastGroupChan
+				assert.Equal(ns.FlushMulticastQueueForMulticastGroupRequest{
+					MulticastGroupId: mgID.Bytes(),
+				}, nsReq)
+
+			})
+		})
+
 		t.Run("Delete", func(t *testing.T) {
 			assert := require.New(t)
 

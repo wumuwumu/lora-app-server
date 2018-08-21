@@ -843,6 +843,26 @@ func ValidateMulticastGroupAccess(flag Flag, multicastGroupID uuid.UUID) Validat
 	}
 }
 
+// ValidateMulticastGroupQueueAccess validates if the client has access to
+// the given multicast-group queue.
+func ValidateMulticastGroupQueueAccess(flag Flag, multicastGroupID uuid.UUID) ValidatorFunc {
+	var where = [][]string{}
+
+	switch flag {
+	case Create, List, Delete:
+		// global admi
+		// organization user
+		where = [][]string{
+			{"u.username = $1", "u.is_active = true", "u.is_admin = true"},
+			{"u.username = $1", "u.is_active = true", "mg.id = $2"},
+		}
+	}
+
+	return func(db sqlx.Queryer, claims *Claims) (bool, error) {
+		return executeQuery(db, userQuery, where, claims.Username, multicastGroupID)
+	}
+}
+
 func executeQuery(db sqlx.Queryer, query string, where [][]string, args ...interface{}) (bool, error) {
 	var ors []string
 	for _, ands := range where {

@@ -87,7 +87,7 @@ func (ts *StorageTestSuite) TestMulticastGroup() {
 		t.Run("Get", func(t *testing.T) {
 			assert := require.New(t)
 
-			mgGet, err := GetMulticastGroup(ts.Tx(), mgID, false)
+			mgGet, err := GetMulticastGroup(ts.Tx(), mgID, false, false)
 			assert.NoError(err)
 
 			mgGet.CreatedAt = mgGet.CreatedAt.Round(time.Second).UTC()
@@ -124,7 +124,7 @@ func (ts *StorageTestSuite) TestMulticastGroup() {
 			assert.Equal(mg.MulticastGroup, *updateReq.MulticastGroup)
 			nsClient.GetMulticastGroupResponse.MulticastGroup = updateReq.MulticastGroup
 
-			mgGet, err := GetMulticastGroup(ts.Tx(), mgID, false)
+			mgGet, err := GetMulticastGroup(ts.Tx(), mgID, false, false)
 			assert.NoError(err)
 
 			mgGet.CreatedAt = mgGet.CreatedAt.Round(time.Second).UTC()

@@ -59,6 +59,28 @@ service MulticastGroupService {
             delete: "/api/multicast-groups/{multicast_group_id}/devices/{dev_eui}"
         };
     }
+
+    // Enqueue adds the given item to the multicast-queue.
+    rpc Enqueue(EnqueueMulticastQueueItemRequest) returns (EnqueueMulticastQueueItemResponse) {
+        option(google.api.http) = {
+            post: "/api/multicast-groups/{multicast_queue_item.multicast_group_id}/queue"
+            body: "*"
+        };
+    }
+
+    // FlushQueue flushes the multicast-group queue.
+    rpc FlushQueue(FlushMulticastGroupQueueItemsRequest) returns (google.protobuf.Empty) {
+        option(google.api.http) = {
+            delete: "/api/multicast-groups/{multicast_group_id}/queue"
+        };
+    }
+
+    // ListQueue lists the items in the multicast-group queue.
+    rpc ListQueue(ListMulticastGroupQueueItemsRequest) returns (ListMulticastGroupQueueItemsResponse) {
+        option(google.api.http) = {
+            get: "/api/multicast-groups/{multicast_group_id}/queue"
+        };
+    }
 }
 
 enum MulticastGroupType {
@@ -200,4 +222,43 @@ message ListMulticastGroupResponse {
     int64 total_count = 1;
 
     repeated MulticastGroupListItem result = 2;
+}
+
+message MulticastQueueItem {
+    // Multicast-group ID (string formatted UUID).
+    string multicast_group_id = 1 [json_name = "multicastGroupID"];
+
+    // Downlink frame-counter.
+    // This will be automatically set on enqueue.
+    uint32 f_cnt = 2;
+
+    // FPort used (must be > 0).
+    uint32 f_port = 3;
+
+    // Base64 encoded data.
+    bytes data = 4;
+}
+
+message EnqueueMulticastQueueItemRequest {
+    // Multicast queue-item object to enqueue.
+    MulticastQueueItem multicast_queue_item = 1;
+}
+
+message EnqueueMulticastQueueItemResponse {
+    // Frame-counter for the enqueued payload.
+    uint32 f_cnt = 1;
+}
+
+message FlushMulticastGroupQueueItemsRequest {
+    // Multicast-group ID (string formatted UUID).
+    string multicast_group_id = 1 [json_name = "multicastGroupID"];
+}
+
+message ListMulticastGroupQueueItemsRequest {
+    // Multicast-group ID (string formatted UUID).
+    string multicast_group_id = 1 [json_name = "multicastGroupID"];
+}
+
+message ListMulticastGroupQueueItemsResponse {
+    repeated MulticastQueueItem multicast_queue_items = 1;
 }

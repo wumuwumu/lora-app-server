@@ -254,6 +254,90 @@
           "MulticastGroupService"
         ]
       }
+    },
+    "/api/multicast-groups/{multicast_group_id}/queue": {
+      "get": {
+        "summary": "ListQueue lists the items in the multicast-group queue.",
+        "operationId": "ListQueue",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiListMulticastGroupQueueItemsResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "multicast_group_id",
+            "description": "Multicast-group ID (string formatted UUID).",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MulticastGroupService"
+        ]
+      },
+      "delete": {
+        "summary": "FlushQueue flushes the multicast-group queue.",
+        "operationId": "FlushQueue",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/protobufEmpty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "multicast_group_id",
+            "description": "Multicast-group ID (string formatted UUID).",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MulticastGroupService"
+        ]
+      }
+    },
+    "/api/multicast-groups/{multicast_queue_item.multicast_group_id}/queue": {
+      "post": {
+        "summary": "Enqueue adds the given item to the multicast-queue.",
+        "operationId": "Enqueue",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiEnqueueMulticastQueueItemResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "multicast_queue_item.multicast_group_id",
+            "description": "Multicast-group ID (string formatted UUID).",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiEnqueueMulticastQueueItemRequest"
+            }
+          }
+        ],
+        "tags": [
+          "MulticastGroupService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -288,6 +372,25 @@
         }
       }
     },
+    "apiEnqueueMulticastQueueItemRequest": {
+      "type": "object",
+      "properties": {
+        "multicastQueueItem": {
+          "$ref": "#/definitions/apiMulticastQueueItem",
+          "description": "Multicast queue-item object to enqueue."
+        }
+      }
+    },
+    "apiEnqueueMulticastQueueItemResponse": {
+      "type": "object",
+      "properties": {
+        "fCnt": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Frame-counter for the enqueued payload."
+        }
+      }
+    },
     "apiGetMulticastGroupResponse": {
       "type": "object",
       "properties": {
@@ -304,6 +407,17 @@
           "type": "string",
           "format": "date-time",
           "description": "Last update timestamp."
+        }
+      }
+    },
+    "apiListMulticastGroupQueueItemsResponse": {
+      "type": "object",
+      "properties": {
+        "multicastQueueItems": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiMulticastQueueItem"
+          }
         }
       }
     },
@@ -405,6 +519,30 @@
       ],
       "default": "CLASS_C",
       "description": " - CLASS_C: Class-C.\n - CLASS_B: Class-B."
+    },
+    "apiMulticastQueueItem": {
+      "type": "object",
+      "properties": {
+        "multicastGroupID": {
+          "type": "string",
+          "description": "Multicast-group ID (string formatted UUID)."
+        },
+        "fCnt": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Downlink frame-counter.\nThis will be automatically set on enqueue."
+        },
+        "fPort": {
+          "type": "integer",
+          "format": "int64",
+          "description": "FPort used (must be \u003e 0)."
+        },
+        "data": {
+          "type": "string",
+          "format": "byte",
+          "description": "Base64 encoded data."
+        }
+      }
     },
     "apiUpdateMulticastGroupRequest": {
       "type": "object",

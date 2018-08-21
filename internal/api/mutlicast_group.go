@@ -12,6 +12,8 @@ import (
 	pb "github.com/brocaar/lora-app-server/api"
 	"github.com/brocaar/lora-app-server/internal/api/auth"
 	"github.com/brocaar/lora-app-server/internal/common"
+	"github.com/brocaar/lora-app-server/internal/config"
+	"github.com/brocaar/lora-app-server/internal/multicast"
 	"github.com/brocaar/lora-app-server/internal/storage"
 	"github.com/brocaar/loraserver/api/ns"
 	"github.com/brocaar/lorawan"
@@ -114,7 +116,7 @@ func (a *MulticastGroupAPI) Get(ctx context.Context, req *pb.GetMulticastGroupRe
 		return nil, grpc.Errorf(codes.Unauthenticated, "authentication failed: %s", err)
 	}
 
-	mg, err := storage.GetMulticastGroup(a.db, mgID, false)
+	mg, err := storage.GetMulticastGroup(a.db, mgID, false, false)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -169,7 +171,7 @@ func (a *MulticastGroupAPI) Update(ctx context.Context, req *pb.UpdateMulticastG
 		return nil, grpc.Errorf(codes.Unauthenticated, "authentication failed: %s", err)
 	}
 
-	mg, err := storage.GetMulticastGroup(a.db, mgID, false)
+	mg, err := storage.GetMulticastGroup(a.db, mgID, false, false)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -351,7 +353,7 @@ func (a *MulticastGroupAPI) AddDevice(ctx context.Context, req *pb.AddDeviceToMu
 		return nil, errToRPCError(err)
 	}
 
-	mg, err := storage.GetMulticastGroup(a.db, mgID, true)
+	mg, err := storage.GetMulticastGroup(a.db, mgID, false, true)
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -399,4 +401,130 @@ func (a *MulticastGroupAPI) RemoveDevice(ctx context.Context, req *pb.RemoveDevi
 	}
 
 	return &empty.Empty{}, nil
+}
+
+// Enqueue adds the given item to the multicast-queue.
+func (a *MulticastGroupAPI) Enqueue(ctx context.Context, req *pb.EnqueueMulticastQueueItemRequest) (*pb.EnqueueMulticastQueueItemResponse, error) {
+	var fCnt uint32
+
+	if req.MulticastQueueItem == nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "multicast_queue_item must not be nil")
+	}
+
+	if req.MulticastQueueItem.FPort == 0 {
+		return nil, grpc.Errorf(codes.InvalidArgument, "f_port must be > 0")
+	}
+
+	mgID, err := uuid.FromString(req.MulticastQueueItem.MulticastGroupId)
+	if err != nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "multicast_group_id: %s", err)
+	}
+
+	if err = a.validator.Validate(ctx,
+		auth.ValidateMulticastGroupQueueAccess(auth.Create, mgID)); err != nil {
+		return nil, grpc.Errorf(codes.Unauthenticated, "authentication failed: %s", err)
+	}
+
+	if err = storage.Transaction(a.db, func(tx sqlx.Ext) error {
+		var err error
+		fCnt, err = multicast.Enqueue(tx, mgID, uint8(req.MulticastQueueItem.FPort), req.MulticastQueueItem.Data)
+		if err != nil {
+			return grpc.Errorf(codes.Internal, "enqueue multicast-group queue-item error: %s", err)
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &pb.EnqueueMulticastQueueItemResponse{
+		FCnt: fCnt,
+	}, nil
+}
+
+// FlushQueue flushes the multicast-group queue.
+func (a *MulticastGroupAPI) FlushQueue(ctx context.Context, req *pb.FlushMulticastGroupQueueItemsRequest) (*empty.Empty, error) {
+	mgID, err := uuid.FromString(req.MulticastGroupId)
+	if err != nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "multicast_group_id: %s", err)
+	}
+
+	if err = a.validator.Validate(ctx,
+		auth.ValidateMulticastGroupQueueAccess(auth.Delete, mgID)); err != nil {
+		return nil, grpc.Errorf(codes.Unauthenticated, "authentication failed: %s", err)
+	}
+
+	n, err := storage.GetNetworkServerForMulticastGroupID(a.db, mgID)
+	if err != nil {
+		return nil, errToRPCError(err)
+	}
+
+	nsClient, err := config.C.NetworkServer.Pool.Get(n.Server, []byte(n.CACert), []byte(n.TLSCert), []byte(n.TLSKey))
+	if err != nil {
+		return nil, errToRPCError(err)
+	}
+
+	_, err = nsClient.FlushMulticastQueueForMulticastGroup(ctx, &ns.FlushMulticastQueueForMulticastGroupRequest{
+		MulticastGroupId: mgID.Bytes(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &empty.Empty{}, nil
+}
+
+// ListQueue lists the items in the multicast-group queue.
+func (a *MulticastGroupAPI) ListQueue(ctx context.Context, req *pb.ListMulticastGroupQueueItemsRequest) (*pb.ListMulticastGroupQueueItemsResponse, error) {
+	mgID, err := uuid.FromString(req.MulticastGroupId)
+	if err != nil {
+		return nil, grpc.Errorf(codes.InvalidArgument, "multicast_group_id: %s", err)
+	}
+
+	if err = a.validator.Validate(ctx,
+		auth.ValidateMulticastGroupQueueAccess(auth.Read, mgID)); err != nil {
+		return nil, grpc.Errorf(codes.Unauthenticated, "authentication failed: %s", err)
+	}
+
+	mg, err := storage.GetMulticastGroup(a.db, mgID, false, false)
+	if err != nil {
+		return nil, errToRPCError(err)
+	}
+
+	n, err := storage.GetNetworkServerForMulticastGroupID(a.db, mgID)
+	if err != nil {
+		return nil, errToRPCError(err)
+	}
+
+	nsClient, err := config.C.NetworkServer.Pool.Get(n.Server, []byte(n.CACert), []byte(n.TLSCert), []byte(n.TLSKey))
+	if err != nil {
+		return nil, errToRPCError(err)
+	}
+
+	queuItemsResp, err := nsClient.GetMulticastQueueItemsForMulticastGroup(ctx, &ns.GetMulticastQueueItemsForMulticastGroupRequest{
+		MulticastGroupId: mgID.Bytes(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var resp pb.ListMulticastGroupQueueItemsResponse
+	var devAddr lorawan.DevAddr
+	copy(devAddr[:], mg.MulticastGroup.McAddr)
+
+	for _, qi := range queuItemsResp.MulticastQueueItems {
+		b, err := lorawan.EncryptFRMPayload(mg.MCAppSKey, false, devAddr, qi.FCnt, qi.FrmPayload)
+		if err != nil {
+			return nil, errToRPCError(err)
+		}
+
+		resp.MulticastQueueItems = append(resp.MulticastQueueItems, &pb.MulticastQueueItem{
+			MulticastGroupId: mgID.String(),
+			FCnt:             qi.FCnt,
+			FPort:            qi.FPort,
+			Data:             b,
+		})
+	}
+
+	return &resp, nil
 }

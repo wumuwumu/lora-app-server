@@ -89,7 +89,12 @@ func CreateMulticastGroup(db sqlx.Ext, mg *MulticastGroup) error {
 }
 
 // GetMulticastGroup returns the multicast-group given an id.
-func GetMulticastGroup(db sqlx.Queryer, id uuid.UUID, localOnly bool) (MulticastGroup, error) {
+func GetMulticastGroup(db sqlx.Queryer, id uuid.UUID, forUpdate, localOnly bool) (MulticastGroup, error) {
+	var fu string
+	if forUpdate {
+		fu = " for update"
+	}
+
 	var mg MulticastGroup
 
 	err := sqlx.Get(db, &mg, `
@@ -103,7 +108,7 @@ func GetMulticastGroup(db sqlx.Queryer, id uuid.UUID, localOnly bool) (Multicast
 			multicast_group
 		where
 			id = $1
-	`, id)
+	`+fu, id)
 	if err != nil {
 		return mg, handlePSQLError(Select, err, "select error")
 	}
