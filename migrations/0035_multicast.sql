@@ -8,6 +8,7 @@ create table multicast_group (
     mc_app_s_key bytea
 );
 
+create index idx_multicast_group_name_trgm on multicast_group using gin (name gin_trgm_ops);
 create index idx_multicast_group_service_profile_id on multicast_group(service_profile_id);
 
 create table device_multicast_group (
@@ -22,5 +23,6 @@ create table device_multicast_group (
 drop table device_multicast_group;
 
 drop index idx_multicast_group_service_profile_id;
+drop index idx_multicast_group_name_trgm;
 
 drop table multicast_group;

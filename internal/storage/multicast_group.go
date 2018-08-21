@@ -89,7 +89,7 @@ func CreateMulticastGroup(db sqlx.Ext, mg *MulticastGroup) error {
 }
 
 // GetMulticastGroup returns the multicast-group given an id.
-func GetMulticastGroup(db sqlx.Queryer, id uuid.UUID) (MulticastGroup, error) {
+func GetMulticastGroup(db sqlx.Queryer, id uuid.UUID, localOnly bool) (MulticastGroup, error) {
 	var mg MulticastGroup
 
 	err := sqlx.Get(db, &mg, `
@@ -106,6 +106,10 @@ func GetMulticastGroup(db sqlx.Queryer, id uuid.UUID) (MulticastGroup, error) {
 	`, id)
 	if err != nil {
 		return mg, handlePSQLError(Select, err, "select error")
+	}
+
+	if localOnly {
+		return mg, nil
 	}
 
 	nsClient, err := getNSClientForServiceProfile(db, mg.ServiceProfileID)
@@ -227,6 +231,12 @@ type MulticastGroupFilters struct {
 	OrganizationID   int64         `db:"organization_id"`
 	ServiceProfileID uuid.UUID     `db:"service_profile_id"`
 	DevEUI           lorawan.EUI64 `db:"dev_eui"`
+	Search           string        `db:"search"`
+
+	// Limit and Offset are added for convenience so that this struct can
+	// be given as the arguments.
+	Limit  int `db:"limit"`
+	Offset int `db:"offset"`
 }
 
 // SQL returns the SQL filter.
@@ -243,6 +253,9 @@ func (f MulticastGroupFilters) SQL() string {
 	if f.DevEUI != nilEUI {
 		filters = append(filters, "dmg.dev_eui = :dev_eui")
 	}
+	if f.Search != "" {
+		filters = append(filters, "mg.name ilike :search")
+	}
 
 	if len(filters) == 0 {
 		return ""
@@ -254,6 +267,10 @@ func (f MulticastGroupFilters) SQL() string {
 // GetMulticastGroupCount returns the total number of multicast-groups given
 // the provided filters. Note that empty values are not used as filters.
 func GetMulticastGroupCount(db sqlx.Queryer, filters MulticastGroupFilters) (int, error) {
+	if filters.Search != "" {
+		filters.Search = "%" + filters.Search + "%"
+	}
+
 	query, args, err := sqlx.BindNamed(sqlx.DOLLAR, `
 		select
 			count(distinct mg.*)
@@ -282,6 +299,10 @@ func GetMulticastGroupCount(db sqlx.Queryer, filters MulticastGroupFilters) (int
 // GetMulticastGroups returns a slice of multicast-groups, given the privded
 // filters. Note that empty values are not used as filters.
 func GetMulticastGroups(db sqlx.Queryer, filters MulticastGroupFilters) ([]MulticastGroupListItem, error) {
+	if filters.Search != "" {
+		filters.Search = "%" + filters.Search + "%"
+	}
+
 	query, args, err := sqlx.BindNamed(sqlx.DOLLAR, `
 		select
 			distinct mg.id,
@@ -298,7 +319,12 @@ func GetMulticastGroups(db sqlx.Queryer, filters MulticastGroupFilters) ([]Multi
 			on o.id = sp.organization_id
 		left join device_multicast_group dmg
 			on mg.id = dmg.multicast_group_id
-	`+filters.SQL(), filters)
+	`+filters.SQL()+`
+		order by
+			mg.name
+		limit :limit
+		offset :offset
+	`, filters)
 	if err != nil {
 		return nil, errors.Wrap(err, "named query error")
 	}

@@ -87,7 +87,7 @@ func (ts *StorageTestSuite) TestMulticastGroup() {
 		t.Run("Get", func(t *testing.T) {
 			assert := require.New(t)
 
-			mgGet, err := GetMulticastGroup(ts.Tx(), mgID)
+			mgGet, err := GetMulticastGroup(ts.Tx(), mgID, false)
 			assert.NoError(err)
 
 			mgGet.CreatedAt = mgGet.CreatedAt.Round(time.Second).UTC()
@@ -124,7 +124,7 @@ func (ts *StorageTestSuite) TestMulticastGroup() {
 			assert.Equal(mg.MulticastGroup, *updateReq.MulticastGroup)
 			nsClient.GetMulticastGroupResponse.MulticastGroup = updateReq.MulticastGroup
 
-			mgGet, err := GetMulticastGroup(ts.Tx(), mgID)
+			mgGet, err := GetMulticastGroup(ts.Tx(), mgID, false)
 			assert.NoError(err)
 
 			mgGet.CreatedAt = mgGet.CreatedAt.Round(time.Second).UTC()
@@ -201,6 +201,9 @@ func (ts *StorageTestSuite) TestMulticastGroup() {
 			}{
 				{
 					Name: "no filters",
+					Filters: MulticastGroupFilters{
+						Limit: 10,
+					},
 					Expected: []MulticastGroupListItem{
 						{
 							ID:                 mgID,
@@ -214,6 +217,7 @@ func (ts *StorageTestSuite) TestMulticastGroup() {
 					Name: "org filter",
 					Filters: MulticastGroupFilters{
 						OrganizationID: org.ID,
+						Limit:          10,
 					},
 					Expected: []MulticastGroupListItem{
 						{
@@ -234,6 +238,7 @@ func (ts *StorageTestSuite) TestMulticastGroup() {
 					Name: "service-profile filter",
 					Filters: MulticastGroupFilters{
 						ServiceProfileID: mg.ServiceProfileID,
+						Limit:            10,
 					},
 					Expected: []MulticastGroupListItem{
 						{
@@ -248,12 +253,14 @@ func (ts *StorageTestSuite) TestMulticastGroup() {
 					Name: "non-matching service-profile filter",
 					Filters: MulticastGroupFilters{
 						ServiceProfileID: uuid.Must(uuid.NewV4()),
+						Limit:            10,
 					},
 				},
 				{
 					Name: "device eui filter",
 					Filters: MulticastGroupFilters{
 						DevEUI: devices[0].DevEUI,
+						Limit:  10,
 					},
 					Expected: []MulticastGroupListItem{
 						{
@@ -268,6 +275,29 @@ func (ts *StorageTestSuite) TestMulticastGroup() {
 					Name: "non-matching device eui filter",
 					Filters: MulticastGroupFilters{
 						DevEUI: lorawan.EUI64{1, 2, 3, 4, 5, 6, 7, 8},
+						Limit:  10,
+					},
+				},
+				{
+					Name: "search filter",
+					Filters: MulticastGroupFilters{
+						Search: "upda",
+						Limit:  10,
+					},
+					Expected: []MulticastGroupListItem{
+						{
+							ID:                 mgID,
+							Name:               "test-mg-updated",
+							ServiceProfileID:   mg.ServiceProfileID,
+							ServiceProfileName: sp.Name,
+						},
+					},
+				},
+				{
+					Name: "non-matching search filter",
+					Filters: MulticastGroupFilters{
+						Search: "foo",
+						Limit:  10,
 					},
 				},
 			}
