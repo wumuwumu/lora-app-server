@@ -12,8 +12,8 @@ import (
 	pb "github.com/brocaar/lora-app-server/api"
 	"github.com/brocaar/lora-app-server/internal/api/auth"
 	"github.com/brocaar/lora-app-server/internal/common"
-	"github.com/brocaar/lora-app-server/internal/config"
 	"github.com/brocaar/lora-app-server/internal/multicast"
+	"github.com/brocaar/lora-app-server/internal/nsclient"
 	"github.com/brocaar/lora-app-server/internal/storage"
 	"github.com/brocaar/loraserver/api/ns"
 	"github.com/brocaar/lorawan"
@@ -24,14 +24,16 @@ type MulticastGroupAPI struct {
 	validator        auth.Validator
 	db               *common.DBLogger
 	routingProfileID uuid.UUID
+	nsClientPool     nsclient.Pool
 }
 
 // NewMulticastGroupAPI creates a new multicast-group API.
-func NewMulticastGroupAPI(validator auth.Validator, db *common.DBLogger, routingProfileID uuid.UUID) *MulticastGroupAPI {
+func NewMulticastGroupAPI(validator auth.Validator, db *common.DBLogger, routingProfileID uuid.UUID, nsClientPool nsclient.Pool) *MulticastGroupAPI {
 	return &MulticastGroupAPI{
 		validator:        validator,
 		db:               db,
 		routingProfileID: routingProfileID,
+		nsClientPool:     nsClientPool,
 	}
 }
 
@@ -459,7 +461,7 @@ func (a *MulticastGroupAPI) FlushQueue(ctx context.Context, req *pb.FlushMultica
 		return nil, errToRPCError(err)
 	}
 
-	nsClient, err := config.C.NetworkServer.Pool.Get(n.Server, []byte(n.CACert), []byte(n.TLSCert), []byte(n.TLSKey))
+	nsClient, err := a.nsClientPool.Get(n.Server, []byte(n.CACert), []byte(n.TLSCert), []byte(n.TLSKey))
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
@@ -496,7 +498,7 @@ func (a *MulticastGroupAPI) ListQueue(ctx context.Context, req *pb.ListMulticast
 		return nil, errToRPCError(err)
 	}
 
-	nsClient, err := config.C.NetworkServer.Pool.Get(n.Server, []byte(n.CACert), []byte(n.TLSCert), []byte(n.TLSKey))
+	nsClient, err := a.nsClientPool.Get(n.Server, []byte(n.CACert), []byte(n.TLSCert), []byte(n.TLSKey))
 	if err != nil {
 		return nil, errToRPCError(err)
 	}
