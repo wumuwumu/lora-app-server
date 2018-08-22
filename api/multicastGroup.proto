@@ -103,7 +103,7 @@ message MulticastGroup {
     string mc_addr = 3;
 
     // Multicast network session key (HEX encoded AES128 key).
-    string mc_net_s_key = 4;
+    string mc_nwk_s_key = 4;
 
     // Multicast application session key (HEX encoded AES128 key).
     string mc_app_s_key = 5;

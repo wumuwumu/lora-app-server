@@ -27,7 +27,7 @@ func (ts *APITestSuite) TestMulticastGroup() {
 	rpID, _ := uuid.NewV4()
 
 	validator := &TestValidator{}
-	api := NewMulticastGroupAPI(validator, ts.DB(), rpID)
+	api := NewMulticastGroupAPI(validator, ts.DB(), rpID, config.C.NetworkServer.Pool)
 
 	n := storage.NetworkServer{
 		Name:   "test",
@@ -72,7 +72,7 @@ func (ts *APITestSuite) TestMulticastGroup() {
 			MulticastGroup: &pb.MulticastGroup{
 				Name:             "test-mg",
 				McAddr:           "01020304",
-				McNetSKey:        "01020304050607080102030405060708",
+				McNwkSKey:        "01020304050607080102030405060708",
 				McAppSKey:        "08070605040302010807060504030201",
 				FCnt:             10,
 				GroupType:        pb.MulticastGroupType_CLASS_B,
@@ -330,7 +330,7 @@ func (ts *APITestSuite) TestMulticastGroup() {
 					Name:             "test-mg-updated",
 					McAddr:           "04030201",
 					McAppSKey:        "01020304050607080102030405060708",
-					McNetSKey:        "08070605040302010807060504030201",
+					McNwkSKey:        "08070605040302010807060504030201",
 					FCnt:             11,
 					GroupType:        pb.MulticastGroupType_CLASS_C,
 					Dr:               4,

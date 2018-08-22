@@ -230,7 +230,7 @@ func DeleteMulticastGroup(db sqlx.Ext, id uuid.UUID) error {
 	return nil
 }
 
-// MulticastGroupFilters provide filters that can be used to filder on
+// MulticastGroupFilters provide filters that can be used to filter on
 // multicast-groups. Note that empty values are not used as filters.
 type MulticastGroupFilters struct {
 	OrganizationID   int64         `db:"organization_id"`

@@ -63,8 +63,8 @@ func (a *MulticastGroupAPI) Create(ctx context.Context, req *pb.CreateMulticastG
 		return nil, grpc.Errorf(codes.InvalidArgument, "mc_app_s_key: %s", err)
 	}
 
-	var mcNetSKey lorawan.AES128Key
-	if err = mcNetSKey.UnmarshalText([]byte(req.MulticastGroup.McNetSKey)); err != nil {
+	var mcNwkSKey lorawan.AES128Key
+	if err = mcNwkSKey.UnmarshalText([]byte(req.MulticastGroup.McNwkSKey)); err != nil {
 		return nil, grpc.Errorf(codes.InvalidArgument, "mc_net_s_key: %s", err)
 	}
 
@@ -73,7 +73,7 @@ func (a *MulticastGroupAPI) Create(ctx context.Context, req *pb.CreateMulticastG
 		ServiceProfileID: spID,
 		MulticastGroup: ns.MulticastGroup{
 			McAddr:           mcAddr[:],
-			McNetSKey:        mcNetSKey[:],
+			McNwkSKey:        mcNwkSKey[:],
 			FCnt:             req.MulticastGroup.FCnt,
 			GroupType:        ns.MulticastGroupType(req.MulticastGroup.GroupType),
 			Dr:               req.MulticastGroup.Dr,
@@ -124,16 +124,16 @@ func (a *MulticastGroupAPI) Get(ctx context.Context, req *pb.GetMulticastGroupRe
 	}
 
 	var mcAddr lorawan.DevAddr
-	var mcNetSKey lorawan.AES128Key
+	var mcNwkSKey lorawan.AES128Key
 	copy(mcAddr[:], mg.MulticastGroup.McAddr)
-	copy(mcNetSKey[:], mg.MulticastGroup.McNetSKey)
+	copy(mcNwkSKey[:], mg.MulticastGroup.McNwkSKey)
 
 	out := pb.GetMulticastGroupResponse{
 		MulticastGroup: &pb.MulticastGroup{
 			Id:               mgID.String(),
 			Name:             mg.Name,
 			McAddr:           mcAddr.String(),
-			McNetSKey:        mcNetSKey.String(),
+			McNwkSKey:        mcNwkSKey.String(),
 			McAppSKey:        mg.MCAppSKey.String(),
 			FCnt:             mg.MulticastGroup.FCnt,
 			GroupType:        pb.MulticastGroupType(mg.MulticastGroup.GroupType),
@@ -183,8 +183,8 @@ func (a *MulticastGroupAPI) Update(ctx context.Context, req *pb.UpdateMulticastG
 		return nil, grpc.Errorf(codes.InvalidArgument, "mc_app_s_key: %s", err)
 	}
 
-	var mcNetSKey lorawan.AES128Key
-	if err = mcNetSKey.UnmarshalText([]byte(req.MulticastGroup.McNetSKey)); err != nil {
+	var mcNwkSKey lorawan.AES128Key
+	if err = mcNwkSKey.UnmarshalText([]byte(req.MulticastGroup.McNwkSKey)); err != nil {
 		return nil, grpc.Errorf(codes.InvalidArgument, "mc_net_s_key: %s", err)
 	}
 
@@ -192,7 +192,7 @@ func (a *MulticastGroupAPI) Update(ctx context.Context, req *pb.UpdateMulticastG
 	mg.MulticastGroup = ns.MulticastGroup{
 		Id:               mg.MulticastGroup.Id,
 		McAddr:           mcAddr[:],
-		McNetSKey:        mcNetSKey[:],
+		McNwkSKey:        mcNwkSKey[:],
 		FCnt:             req.MulticastGroup.FCnt,
 		GroupType:        ns.MulticastGroupType(req.MulticastGroup.GroupType),
 		Dr:               req.MulticastGroup.Dr,
