@@ -190,6 +190,7 @@ func GetDevice(db sqlx.Queryer, devEUI lorawan.EUI64, forUpdate, localOnly bool)
 type DeviceFilters struct {
 	ApplicationID    int64     `db:"application_id"`
 	MulticastGroupID uuid.UUID `db:"multicast_group_id"`
+	ServiceProfileID uuid.UUID `db:"service_profile_id"`
 	Search           string    `db:"search"`
 
 	// Limit and Offset are added for convenience so that this struct can
@@ -208,6 +209,10 @@ func (f DeviceFilters) SQL() string {
 
 	if f.MulticastGroupID != uuid.Nil {
 		filters = append(filters, "dmg.multicast_group_id = :multicast_group_id")
+	}
+
+	if f.ServiceProfileID != uuid.Nil {
+		filters = append(filters, "a.service_profile_id = :service_profile_id")
 	}
 
 	if f.Search != "" {
@@ -231,6 +236,8 @@ func GetDeviceCount(db sqlx.Queryer, filters DeviceFilters) (int, error) {
 		select
 			count(distinct d.*)
 		from device d
+		inner join application a
+			on d.application_id = a.id
 		left join device_multicast_group dmg
 			on d.dev_eui = dmg.dev_eui
 	`+filters.SQL(), filters)
@@ -261,6 +268,8 @@ func GetDevices(db sqlx.Queryer, filters DeviceFilters) ([]DeviceListItem, error
 			device d
 		inner join device_profile dp
 			on dp.device_profile_id = d.device_profile_id
+		inner join application a
+			on d.application_id = a.id
 		left join device_multicast_group dmg
 			on d.dev_eui = dmg.dev_eui
 		`+filters.SQL()+`

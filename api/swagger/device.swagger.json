@@ -65,6 +65,13 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "serviceProfileID",
+            "description": "Service-profile ID to filter on (string formatted UUID).",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [

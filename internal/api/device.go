@@ -141,8 +141,15 @@ func (a *DeviceAPI) List(ctx context.Context, req *pb.ListDeviceRequest) (*pb.Li
 		Offset:        int(req.Offset),
 	}
 
-	if req.MulticastGroupID != "" {
-		filters.MulticastGroupID, err = uuid.FromString(req.MulticastGroupID)
+	if req.MulticastGroupId != "" {
+		filters.MulticastGroupID, err = uuid.FromString(req.MulticastGroupId)
+		if err != nil {
+			return nil, errToRPCError(err)
+		}
+	}
+
+	if req.ServiceProfileId != "" {
+		filters.ServiceProfileID, err = uuid.FromString(req.ServiceProfileId)
 		if err != nil {
 			return nil, errToRPCError(err)
 		}
@@ -166,6 +173,17 @@ func (a *DeviceAPI) List(ctx context.Context, req *pb.ListDeviceRequest) (*pb.Li
 		// validate that the client has access to the given multicast-group
 		if err := a.validator.Validate(ctx,
 			auth.ValidateMulticastGroupAccess(auth.Read, filters.MulticastGroupID),
+		); err != nil {
+			return nil, grpc.Errorf(codes.Unauthenticated, "authentication failed: %s", err)
+		}
+	}
+
+	if filters.ServiceProfileID != uuid.Nil {
+		idFilter = true
+
+		// validate that the client has access to the given service-profile
+		if err := a.validator.Validate(ctx,
+			auth.ValidateServiceProfileAccess(auth.Read, filters.ServiceProfileID),
 		); err != nil {
 			return nil, grpc.Errorf(codes.Unauthenticated, "authentication failed: %s", err)
 		}
