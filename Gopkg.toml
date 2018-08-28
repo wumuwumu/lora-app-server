@@ -3,7 +3,7 @@
 
 
 [[constraint]]
-  branch = "multicast"
+  branch = "master"
   name = "github.com/brocaar/loraserver"
 
 [[constraint]]

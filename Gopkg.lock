@@ -10,7 +10,7 @@
   revision = "1c3aa3e4dfc5b00bec9983bd1de6a71b3d52cd6d"
 
 [[projects]]
-  branch = "multicast"
+  branch = "master"
   digest = "1:143666fb298285d92105a72662fd7a210c0fab5155a62099f67b02092eed9bf4"
   name = "github.com/brocaar/loraserver"
   packages = [
@@ -20,7 +20,7 @@
     "api/ns",
   ]
   pruneopts = "UT"
-  revision = "32fc8c71cdab22d7fb8c67dfbfb20d3f5ab2e160"
+  revision = "ea0ed1f93e4eaa451a5da5741f1bdef30ce59653"
 
 [[projects]]
   branch = "master"
