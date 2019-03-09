@@ -62,7 +62,7 @@ class DeviceForm extends FormComponent {
           value={this.state.object.name || ""}
           onChange={this.onChange}
           inputProps={{
-            pattern: "^([\\\\p{Han}]|\\\\w|-)+$",
+            pattern: "^([\\p{Han}]|\\w|-)+$",
           }}
           fullWidth
           required
