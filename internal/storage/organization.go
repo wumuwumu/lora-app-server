@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var organizationNameRegexp = regexp.MustCompile(`^[\w-]+$`)
+var organizationNameRegexp = regexp.MustCompile(`^([\p{Han}]|\w|-)+$`)
 
 // Organization represents an organization.
 type Organization struct {

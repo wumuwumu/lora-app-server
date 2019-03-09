@@ -57,12 +57,12 @@ class DeviceForm extends FormComponent {
         <TextField
           id="name"
           label="Device name"
-          helperText="The name may only contain words, numbers and dashes."
+          helperText="名字只能包含中文 英文字母和中划线"
           margin="normal"
           value={this.state.object.name || ""}
           onChange={this.onChange}
           inputProps={{
-            pattern: "[\\w-]+",
+            pattern: "^([\\\\p{Han}]|\\\\w|-)+$",
           }}
           fullWidth
           required

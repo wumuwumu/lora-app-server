@@ -22,7 +22,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var gatewayNameRegexp = regexp.MustCompile(`^[\w-]+$`)
+var gatewayNameRegexp = regexp.MustCompile(`^([\p{Han}]|\w|-)+$`)
 
 // Gateway represents a gateway.
 type Gateway struct {

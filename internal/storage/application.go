@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var applicationNameRegexp = regexp.MustCompile(`^[\w-]+$`)
+var applicationNameRegexp = regexp.MustCompile(`^([\p{Han}]|\w|-)+$`)
 
 // Application represents an application.
 type Application struct {
